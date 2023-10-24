@@ -1,0 +1,13 @@
+maubot: 0.1.0
+id: com.zhenyapav.maubot.llm
+version: 0.0.1
+license: AGPL-3.0-or-later
+modules:
+- bot
+main_class: LLMPlugin
+config: true
+extra_files:
+- base-config.yaml
+- char.txt
+dependencies:
+- requests
