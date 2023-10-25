@@ -1,11 +1,13 @@
 from .textgenwebui import run
-from .character import get_character
 from .config import Config
+from .character import get_char_data, get_char_system_prompt
+from .utils import replace_tags
 
 import asyncio
 import json
 import os
 import re
+import warnings
 from datetime import datetime
 
 from typing import Type, Deque, Dict
@@ -24,13 +26,23 @@ class LLMPlugin(Plugin):
     async def start(self) -> None:
         await super().start()
         self.config.load_and_update()
-        self.name = await self.client.get_displayname(self.client.mxid) or \
+        # Load character
+        if self.config['character_card_path']:
+            self.character = get_char_data(self.config['character_card_path'])
+            print(f"Character card \"{self.character['name']}\" loaded")
+            print(self.character)
+
+        # Set the name
+        try:
+            self.name = self.character['name']
+        except AttributeError:
+            self.name = await self.client.get_displayname(self.client.mxid) or \
             self.client.parse_user_id(self.client.mxid)[0]
+
         self.log.debug(f"DEBUG LLM plugin started with bot name: {self.name}")
 
     async def should_respond(self, event: MessageEvent) -> bool:
         """ Determine if we should respond to an event """
-
         if (event.sender == self.client.mxid or  # Ignore ourselves
                 event.content.body.startswith('!') or # Ignore commands
                 event.content['msgtype'] != MessageType.TEXT or  # Don't respond to media or notices
@@ -70,40 +82,49 @@ class LLMPlugin(Plugin):
             return
 
         try:
-            context = await self.get_context(event)
-            context = context + self.name + ': '
+            prompt = await self.get_context(event)
+            prompt = prompt + self.name + ': '
             await event.mark_read()
             # Call the text-gen-webui API to get a response
             await self.client.set_typing(event.room_id, timeout=99999)
             user = (await self.client.get_displayname(event.sender) or \
                         self.client.parse_user_id(event.sender)[0]) + ": "
-            response = run(context, [user])
+            response = run(prompt, [user])
 
             # Send the response back to the chat room
             await self.client.set_typing(event.room_id, timeout=0)
-            await event.respond(f"{response}", in_thread=self.config['reply_in_thread'])
+            await event.respond(f"{response}")#, in_thread=self.config['reply_in_thread'])
         except Exception as e:
             self.log.exception(f"Something went wrong: {e}")
             await event.respond(f"Something went wrong: {e}")
             pass
 
+    
+    async def get_event_sender_name(self, event: MessageEvent) -> str:
+        return await self.client.get_displayname(event.sender) or \
+                        self.client.parse_user_id(event.sender)[0]
 
     async def get_context(self, event: MessageEvent):
 
         timestamp = datetime.today().strftime('%Y-%m-%d %H:%M:%S')
 
-        system_context = get_character() # TODO: add character prompt here
-
-        chat_context = ''
+        system_context = ''
+        if hasattr(self,'character'):
+            char_prompt = get_char_system_prompt(self.character, await self.get_event_sender_name(event)) or ''
+            user_name = await self.get_event_sender_name(event)
+            system_context += replace_tags(char_prompt, self.name, user_name)
+        else:
+            print("No character is loaded")
         word_count = 0
+        chat_context = ''
         async for next_event in self.generate_context_messages(event):
-
-            if not next_event.content['msgtype'].is_text:
+            if not hasattr(next_event,'content') \
+                or not hasattr(next_event.content,'msgtype')\
+                or not next_event.content['msgtype'].is_text:
                 continue
 
             message = next_event['content']['body'] + '\n'
-            user = (await self.client.get_displayname(next_event.sender) or \
-                        self.client.parse_user_id(next_event.sender)[0]) + ": "
+            user = await self.get_event_sender_name(next_event) + ": "
                 
             #if word_count >= self.config['max_words'] or message_count >= self.config['max_context_messages']:
             #    break

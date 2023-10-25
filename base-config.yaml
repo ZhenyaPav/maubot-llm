@@ -1,3 +1,6 @@
+# Path to the character card
+character_card_path: "/media/veracrypt2/Downloads/main_Emily _tavern.png"
+
 # The maximum number of tokens to generate in the chat completion.
 # Leave blank to allow unlimited response length.
 # Note that is max_tokens + tokens in the input must be less than model's maximum context.
@@ -34,11 +37,3 @@ respond_to_replies: True
 # openAI as well as your used token count, but makes the bot work a little better
 # in multi-person chat rooms
 enable_multi_user: true
-
-# how to minimally train your bot. use this to adjust your bot's behavior.
-# you can use the {name} and {timestamp} variables in this text.
-system_prompt: |
-    You are a friendly assistant named {name}. 
-    The current datetime is {timestamp}, and this can be used reliably to 
-    answer questions related to dates and times.
-    Answer concisely.

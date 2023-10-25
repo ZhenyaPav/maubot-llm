@@ -54,7 +54,7 @@ def run(prompt:str,stopping_strings:[str]=[]):
         'skip_special_tokens': True,
         'stopping_strings': stopping_strings
     }
-    print(request)
+    print(request["prompt"])
     response = requests.post(URI, json=request)
 
     if response.status_code == 200:
