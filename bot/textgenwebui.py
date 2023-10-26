@@ -11,6 +11,14 @@ URI = f'http://{HOST}/api/v1/generate'
 # URI = 'https://your-uri-here.trycloudflare.com/api/v1/chat'
 
 
+def count_tokens(prompt:str) -> int:
+    request = {
+        'prompt':prompt
+    }
+    response = requests.post(URI, json=request)
+    if response.status_code == 200:
+        return response.json()['results']['tokens']
+
 def run(prompt:str,stopping_strings:[str]=[]):
     request = {
         'prompt': prompt,
