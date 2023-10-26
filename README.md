@@ -7,4 +7,8 @@ This bot is still in early stages of development, and will probably require tink
 ## TODO:
 
 - Add proper support for multi character chats (stopping strings currently only include the author of the last message)
-- Add support for TavernAI character cards
+- Token counting
+
+## Completed
+
+- (Mostly) TavernAI character card support - Characted definition, personality and example messages are added to the prompt. If the Matrix client's avatar is not set, the card is uploaded and used as the avatar (can be disabled in settings).

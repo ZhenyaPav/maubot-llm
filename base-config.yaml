@@ -37,3 +37,7 @@ respond_to_replies: True
 # openAI as well as your used token count, but makes the bot work a little better
 # in multi-person chat rooms
 enable_multi_user: true
+
+# if set to true and the Matrix client has no avatar, the character card will be uploaded
+# to the server and used as avatar
+upload_avatar: true

@@ -26,11 +26,20 @@ class LLMPlugin(Plugin):
     async def start(self) -> None:
         await super().start()
         self.config.load_and_update()
+
         # Load character
-        if self.config['character_card_path']:
-            self.character = get_char_data(self.config['character_card_path'])
+        character_card_path = self.config.get('character_card_path', None)
+        if character_card_path and os.path.isfile(character_card_path):
+            self.character = get_char_data(character_card_path)
             print(f"Character card \"{self.character['name']}\" loaded")
             print(self.character)
+            # If the matrix avatar is not set, upload the character card and use it as the avatar
+            if self.config['upload_avatar'] and (await self.client.get_avatar_url(self.client.mxid)) is None:
+                with open(character_card_path, 'rb') as char_card_file:
+                    avatar_bytes = char_card_file.read()
+                    url = await self.client.upload_media(avatar_bytes, 'image/png', os.path.basename(character_card_path))
+                    await self.client.set_avatar_url(url)
+                    print(f"Uploaded {character_card_path} as avatar, url={url}")
 
         # Set the name
         try:
