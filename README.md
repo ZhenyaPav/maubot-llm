@@ -4,6 +4,10 @@ Based on the [ChatGPT Maubot Plugin](https://github.com/williamkray/maubot-chatg
 
 This bot is still in early stages of development, and will probably require tinkering to run it.
 
+### Character cards
+
+This bot supports TavernAI character cards (mainly 2.0 version). Due to the nature of Matrix chats, the starting message is not used right now, so cards with lots of example messages would likely work better.
+
 ## TODO:
 
 - Add proper support for multi character chats (stopping strings currently only include the author of the last message)
