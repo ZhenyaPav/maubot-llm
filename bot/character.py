@@ -10,6 +10,9 @@ def get_char_data(image_path:str) -> dict:
             exif_data = img.getexif()
             chara = base64.b64decode(img.text['chara']).decode('utf-8')
             data = json.loads(chara)
+            # V2 spec
+            if 'data' in data:
+                data = data['data']
             return data
     except Exception as e:
         print(f"Error: {e}")
@@ -24,7 +27,3 @@ def get_char_system_prompt(char:dict, user_name:str) -> str:
     if 'mes_example' in char:
         prompt += replace_tags(char['mes_example'], char['name'], user_name)
     return prompt
-
-if __name__ == "__main__":
-    char = get_char_data("/media/veracrypt2/Downloads/main_Emily _tavern.png")
-    print(get_char_system_prompt(char, "Eugene"))

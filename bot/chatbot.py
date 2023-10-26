@@ -31,15 +31,18 @@ class LLMPlugin(Plugin):
         character_card_path = self.config.get('character_card_path', None)
         if character_card_path and os.path.isfile(character_card_path):
             self.character = get_char_data(character_card_path)
-            print(f"Character card \"{self.character['name']}\" loaded")
-            print(self.character)
+            self.log.debug(self.character)
+            self.log.debug(f"Character card \"{self.character['name']}\" loaded")
+            
+            avatar_url = await self.client.get_avatar_url(self.client.mxid)
             # If the matrix avatar is not set, upload the character card and use it as the avatar
-            if self.config['upload_avatar'] and (await self.client.get_avatar_url(self.client.mxid)) is None:
+            if self.config['upload_avatar']\
+                and (avatar_url is None or self.config['overwrite_existing_avatar']):
                 with open(character_card_path, 'rb') as char_card_file:
                     avatar_bytes = char_card_file.read()
                     url = await self.client.upload_media(avatar_bytes, 'image/png', os.path.basename(character_card_path))
                     await self.client.set_avatar_url(url)
-                    print(f"Uploaded {character_card_path} as avatar, url={url}")
+                    self.log.debug(f"Uploaded {character_card_path} as avatar, url={url}")
 
         # Set the name
         try:
@@ -51,6 +54,7 @@ class LLMPlugin(Plugin):
         self.log.debug(f"DEBUG LLM plugin started with bot name: {self.name}")
 
     async def should_respond(self, event: MessageEvent) -> bool:
+        name = self.name
         """ Determine if we should respond to an event """
         if (event.sender == self.client.mxid or  # Ignore ourselves
                 event.content.body.startswith('!') or # Ignore commands
@@ -63,7 +67,7 @@ class LLMPlugin(Plugin):
             return False
 
         # Check if the message contains the bot's ID
-        if re.search("(^|\s)(@)?" + self.name + "([ :,.!?]|$)", event.content.body, re.IGNORECASE):
+        if re.search("(^|\s)(@)?" + name + "([ :,.!?]|$)", event.content.body, re.IGNORECASE):
             return True
 
         # Reply to all DMs
@@ -96,7 +100,7 @@ class LLMPlugin(Plugin):
             await event.mark_read()
             # Call the text-gen-webui API to get a response
             await self.client.set_typing(event.room_id, timeout=99999)
-            user = (await self.client.get_displayname(event.sender) or \
+            user = "\n" + (await self.client.get_displayname(event.sender) or \
                         self.client.parse_user_id(event.sender)[0]) + ": "
             response = run(prompt, [user])
 
@@ -123,16 +127,17 @@ class LLMPlugin(Plugin):
             user_name = await self.get_event_sender_name(event)
             system_context += replace_tags(char_prompt, self.name, user_name)
         else:
-            print("No character is loaded")
+            self.log.warning("No character is loaded")
         word_count = 0
         chat_context = ''
         async for next_event in self.generate_context_messages(event):
             if not hasattr(next_event,'content') \
-                or not hasattr(next_event.content,'msgtype')\
-                or not next_event.content['msgtype'].is_text:
+                or not hasattr(next_event.content,'msgtype') \
+                or not next_event.content['msgtype'].is_text \
+                or next_event.content.body.startswith('!'):
                 continue
 
-            message = next_event['content']['body'] + '\n'
+            message = next_event.content.body + '\n'
             user = await self.get_event_sender_name(next_event) + ": "
                 
             #if word_count >= self.config['max_words'] or message_count >= self.config['max_context_messages']:

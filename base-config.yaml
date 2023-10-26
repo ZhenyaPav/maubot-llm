@@ -1,5 +1,5 @@
 # Path to the character card
-character_card_path: "/media/veracrypt2/Downloads/main_Emily _tavern.png"
+character_card_path: ""
 
 # The maximum number of tokens to generate in the chat completion.
 # Leave blank to allow unlimited response length.
@@ -41,3 +41,6 @@ enable_multi_user: true
 # if set to true and the Matrix client has no avatar, the character card will be uploaded
 # to the server and used as avatar
 upload_avatar: true
+
+# if true, will upload and set the avatar even if there's one already. 'upload_avatar' should still be True
+overwrite_existing_avatar: False
