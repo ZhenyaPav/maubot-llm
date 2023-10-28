@@ -10,8 +10,9 @@ This bot supports TavernAI character cards (mainly 2.0 version). Due to the natu
 
 ## TODO:
 
-- Add proper support for multi character chats (stopping strings currently only include the author of the last message)
-- Token counting
+- Better multi-user support (some kind of unprompted (not reply or mentioning bot's name in the message) response logic?)
+- Context token counting
+- Add more settings (text-gen-ui URL, frequency of unprompted responses, etc)
 
 ## Completed
 
