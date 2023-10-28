@@ -90,19 +90,23 @@ class LLMPlugin(Plugin):
 
     @event.on(EventType.ROOM_MESSAGE)
     async def on_message(self, event: MessageEvent) -> None:
-
         if not await self.should_respond(event):
             return
-
         try:
-            prompt = await self.get_context(event)
+            context = await self.get_context(event)
+            prompt = context[0]
             prompt = prompt + self.name + ': '
             await event.mark_read()
             # Call the text-gen-webui API to get a response
             await self.client.set_typing(event.room_id, timeout=99999)
             user = "\n" + (await self.client.get_displayname(event.sender) or \
                         self.client.parse_user_id(event.sender)[0]) + ": "
-            response = run(prompt, [user])
+
+            context[1].add(user)
+            stopping_strings = context[1]
+            self.log.debug(prompt)
+            self.log.debug(stopping_strings)
+            response = await run(prompt, list(stopping_strings))
 
             # Send the response back to the chat room
             await self.client.set_typing(event.room_id, timeout=0)
@@ -110,16 +114,15 @@ class LLMPlugin(Plugin):
         except Exception as e:
             self.log.exception(f"Something went wrong: {e}")
             await event.respond(f"Something went wrong: {e}")
-            pass
-
     
     async def get_event_sender_name(self, event: MessageEvent) -> str:
         return await self.client.get_displayname(event.sender) or \
                         self.client.parse_user_id(event.sender)[0]
 
-    async def get_context(self, event: MessageEvent):
+    # Retuns a tuple with the context and the list of stopping strings
+    async def get_context(self, event: MessageEvent) -> (str,set[str]):
 
-        timestamp = datetime.today().strftime('%Y-%m-%d %H:%M:%S')
+        # timestamp = datetime.today().strftime('%Y-%m-%d %H:%M:%S')
 
         system_context = ''
         if hasattr(self,'character'):
@@ -130,7 +133,9 @@ class LLMPlugin(Plugin):
             self.log.warning("No character is loaded")
         word_count = 0
         chat_context = ''
-        async for next_event in self.generate_context_messages(event):
+        events = self.generate_context_messages(event)
+        stopping_strings = set()
+        async for next_event in events:
             if not hasattr(next_event,'content') \
                 or not hasattr(next_event.content,'msgtype') \
                 or not next_event.content['msgtype'].is_text \
@@ -138,16 +143,18 @@ class LLMPlugin(Plugin):
                 continue
 
             message = next_event.content.body + '\n'
-            user = await self.get_event_sender_name(next_event) + ": "
+            user = f"\n{await self.get_event_sender_name(next_event)}: "
                 
             #if word_count >= self.config['max_words'] or message_count >= self.config['max_context_messages']:
             #    break
 
             chat_context = user + message + chat_context
+            stopping_strings.add(user)
 
-        return system_context + '\n***\n' + chat_context
+        return (f"{system_context}\n***\n{chat_context}", stopping_strings)
 
-    async def generate_context_messages(self, evt: MessageEvent):
+    # Returns the list of previous messages with UserID's of the senders
+    async def generate_context_messages(self, evt: MessageEvent) -> MessageEvent:
         yield evt
         if self.config['reply_in_thread']:
             while evt.content.relates_to.in_reply_to:

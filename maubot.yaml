@@ -10,4 +10,4 @@ extra_files:
 - base-config.yaml
 - char.txt
 dependencies:
-- requests
+

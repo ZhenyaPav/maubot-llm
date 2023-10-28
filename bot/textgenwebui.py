@@ -1,7 +1,7 @@
 import html
 import json
 
-import requests
+import asyncio, aiohttp
 
 # For local streaming, the websockets are hosted without ssl - http://
 HOST = 'localhost:5000'
@@ -19,7 +19,7 @@ def count_tokens(prompt:str) -> int:
     if response.status_code == 200:
         return response.json()['results']['tokens']
 
-def run(prompt:str,stopping_strings:[str]=[]):
+async def run(prompt:str,stopping_strings:[str]=[]):
     request = {
         'prompt': prompt,
         'max_new_tokens': 250,
@@ -62,8 +62,9 @@ def run(prompt:str,stopping_strings:[str]=[]):
         'skip_special_tokens': True,
         'stopping_strings': stopping_strings
     }
-    print(request["prompt"])
-    response = requests.post(URI, json=request)
-
-    if response.status_code == 200:
-        return response.json()['results'][0]['text']
+    async with aiohttp.ClientSession() as session:
+        async with session.post(URI, json=request) as response:
+            if response.status == 200:
+                return (await response.json())['results'][0]['text']
+            else:
+                return f"Something's wrong with text-gen-webui API: received {response.status} status."
