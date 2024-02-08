@@ -2,7 +2,9 @@
 A Matrix AI chat bot using [Oogabooga's text-gen-webui](https://github.com/oobabooga/text-generation-webui) backend.
 Based on the [ChatGPT Maubot Plugin](https://github.com/williamkray/maubot-chatgpt)
 
-This bot is still in early stages of development, and will probably require tinkering to run it.
+~This bot is still in early stages of development, and will probably require tinkering to run it.~
+
+Since text-generation-webui has transitioned to OpenAI API, this project is now deprecated, and the [Original Maubot Plugin](https://github.com/williamkray/maubot-chatgpt) should be used instead.
 
 ### Character cards
 
